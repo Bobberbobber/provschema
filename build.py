@@ -333,7 +333,7 @@ def bygg_sida(uppgifter, idag):
 
   .vecka {{ display: grid; grid-template-columns: 92px 1fr; gap: 8px; margin-bottom: 30px; }}
   .vnr {{ font: 800 3.4rem/.9 "Bricolage Grotesque", sans-serif; color: var(--black); letter-spacing: -.05em;
-    position: sticky; top: 12px; align-self: start; }}
+    align-self: start; }}
   .vnr .v {{ font-size: .45em; font-weight: 700; letter-spacing: 0; margin-right: 2px; }}
   .nar {{ margin: 6px 0 8px; font-weight: 700; color: var(--dim); }}
   .vecka.nu .nar {{ color: var(--black); }}
@@ -347,8 +347,8 @@ def bygg_sida(uppgifter, idag):
   .vd {{ display: block; font-size: .8rem; color: var(--dim); }}
   .nr {{ display: block; font: 800 1.8rem/1.05 "Bricolage Grotesque", sans-serif; color: var(--black); }}
   .meta {{ margin: 0 0 2px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: .88rem; color: var(--dim); }}
-  mark.typ {{ background: var(--ovr); color: #18203f; font-weight: 700; padding: 1px 8px 2px; border-radius: 4px 10px 6px 12px;
-    transform: rotate(-1.5deg); display: inline-block; }}
+  mark.typ {{ background: var(--ovr); color: #18203f; font-weight: 700; padding: 1px 8px 2px; border-radius: 6px;
+    display: inline-block; }}
   .prov mark.typ {{ background: var(--prov); }} .skriv mark.typ {{ background: var(--skriv); }}
   .inl mark.typ {{ background: var(--inl); }} .laxa mark.typ {{ background: var(--laxa); }}
   .sem mark.typ {{ background: var(--sem); }}
@@ -382,7 +382,7 @@ def bygg_sida(uppgifter, idag):
 
   @media (max-width: 560px) {{
     .vecka {{ grid-template-columns: 1fr; gap: 0; }}
-    .vnr {{ position: static; font-size: 2.6rem; }}
+    .vnr {{ font-size: 2.6rem; }}
     .rad {{ grid-template-columns: 44px 1fr; }}
     .kvar {{ grid-column: 2; padding-top: 0; }}
     .klar {{ grid-template-columns: auto 1fr; }}
