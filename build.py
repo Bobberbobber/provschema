@@ -1,5 +1,3 @@
-test rad 1
-    indenterad
 """
 Bygger provschemat.
 
