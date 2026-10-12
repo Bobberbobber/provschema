@@ -263,7 +263,7 @@ def bygg_sida(uppgifter, idag):
         </li>""")
         klara = f"""
   <details class="klara">
-    <summary>Avklarade <span class="antal">{len(avklarade)}</span></summary>
+    <summary>Avklarade prov <span class="antal">{len(avklarade)}</span></summary>
     <ul>{''.join(klara_rader)}
     </ul>
   </details>"""
