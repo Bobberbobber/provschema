@@ -361,6 +361,23 @@ def bygg_sida(uppgifter, idag):
 
   .tomt {{ font-size: 1.1rem; margin-top: 40px; }}
 
+  .kattbana {{ position: relative; height: 64px; margin: 8px 0 -24px; overflow: hidden; }}
+  .katt {{ position: absolute; bottom: 0; left: 0; width: 60px; animation: kattga 14s linear infinite; }}
+  .kattkropp {{ animation: kattvand 14s linear infinite, kattstuds .5s steps(2) infinite; }}
+  .kattsvg {{ display: block; width: 60px; height: 52px; }}
+  .benB {{ visibility: hidden; }}
+  .kattsvg .benA {{ animation: benA .5s steps(1) infinite; }}
+  .kattsvg .benB {{ animation: benB .5s steps(1) infinite; }}
+  @keyframes kattga {{ 0% {{ left: 0; }} 50% {{ left: calc(100% - 60px); }} 100% {{ left: 0; }} }}
+  @keyframes kattvand {{ 0%, 49.9% {{ transform: scaleX(1); }} 50%, 100% {{ transform: scaleX(-1); }} }}
+  @keyframes kattstuds {{ 0% {{ translate: 0 0; }} 100% {{ translate: 0 -3px; }} }}
+  @keyframes benA {{ 0% {{ visibility: visible; }} 50% {{ visibility: hidden; }} }}
+  @keyframes benB {{ 0% {{ visibility: hidden; }} 50% {{ visibility: visible; }} }}
+  @media (prefers-reduced-motion: reduce) {{
+    .katt, .kattkropp, .kattsvg .benA, .kattsvg .benB {{ animation: none; }}
+    .katt {{ left: auto; right: 0; }}
+  }}
+
   .klara {{ margin-top: 40px; border-top: 2px solid var(--rutor); padding-top: 18px; }}
   .klara summary {{ cursor: pointer; font: 700 1.25rem/1.2 "Bricolage Grotesque", sans-serif; color: var(--black);
     list-style: none; display: flex; align-items: center; gap: 10px; padding: 6px 0; }}
@@ -396,7 +413,8 @@ def bygg_sida(uppgifter, idag):
     <h1>Provschema {KLASS}</h1>
     <p>{antal} prov och skrivuppgifter kvar</p>
   </header>{hero}
-  {''.join(block)}{klara}
+  {''.join(block)}
+  <div class="kattbana" aria-hidden="true"><div class="katt"><div class="kattkropp"><svg class="kattsvg" viewBox="0 0 15 13" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="0" width="1" height="1" fill="#f7c531"/><rect x="7" y="0" width="1" height="1" fill="#f7c531"/><rect x="9" y="0" width="1" height="1" fill="#f7c531"/><rect x="1" y="1" width="1" height="1" fill="#4b3c93"/><rect x="5" y="1" width="5" height="1" fill="#f7c531"/><rect x="13" y="1" width="1" height="1" fill="#4b3c93"/><rect x="0" y="2" width="1" height="1" fill="#4b3c93"/><rect x="1" y="2" width="1" height="1" fill="#b9a8f5"/><rect x="2" y="2" width="1" height="1" fill="#4b3c93"/><rect x="5" y="2" width="5" height="1" fill="#f7c531"/><rect x="12" y="2" width="1" height="1" fill="#4b3c93"/><rect x="13" y="2" width="1" height="1" fill="#b9a8f5"/><rect x="14" y="2" width="1" height="1" fill="#4b3c93"/><rect x="0" y="3" width="1" height="1" fill="#4b3c93"/><rect x="1" y="3" width="2" height="1" fill="#b9a8f5"/><rect x="3" y="3" width="9" height="1" fill="#4b3c93"/><rect x="12" y="3" width="2" height="1" fill="#b9a8f5"/><rect x="14" y="3" width="1" height="1" fill="#4b3c93"/><rect x="0" y="4" width="1" height="1" fill="#4b3c93"/><rect x="1" y="4" width="13" height="1" fill="#b9a8f5"/><rect x="14" y="4" width="1" height="1" fill="#4b3c93"/><rect x="0" y="5" width="1" height="1" fill="#4b3c93"/><rect x="1" y="5" width="2" height="1" fill="#b9a8f5"/><rect x="3" y="5" width="1" height="1" fill="#2c2160"/><rect x="4" y="5" width="7" height="1" fill="#b9a8f5"/><rect x="11" y="5" width="1" height="1" fill="#2c2160"/><rect x="12" y="5" width="2" height="1" fill="#b9a8f5"/><rect x="14" y="5" width="1" height="1" fill="#4b3c93"/><rect x="0" y="6" width="1" height="1" fill="#4b3c93"/><rect x="1" y="6" width="2" height="1" fill="#b9a8f5"/><rect x="3" y="6" width="1" height="1" fill="#2c2160"/><rect x="4" y="6" width="7" height="1" fill="#b9a8f5"/><rect x="11" y="6" width="1" height="1" fill="#2c2160"/><rect x="12" y="6" width="2" height="1" fill="#b9a8f5"/><rect x="14" y="6" width="1" height="1" fill="#4b3c93"/><rect x="0" y="7" width="1" height="1" fill="#4b3c93"/><rect x="1" y="7" width="1" height="1" fill="#b9a8f5"/><rect x="2" y="7" width="1" height="1" fill="#f49cc4"/><rect x="3" y="7" width="4" height="1" fill="#b9a8f5"/><rect x="7" y="7" width="1" height="1" fill="#2c2160"/><rect x="8" y="7" width="4" height="1" fill="#b9a8f5"/><rect x="12" y="7" width="1" height="1" fill="#f49cc4"/><rect x="13" y="7" width="1" height="1" fill="#b9a8f5"/><rect x="14" y="7" width="1" height="1" fill="#4b3c93"/><rect x="1" y="8" width="1" height="1" fill="#4b3c93"/><rect x="2" y="8" width="11" height="1" fill="#b9a8f5"/><rect x="13" y="8" width="1" height="1" fill="#4b3c93"/><rect x="2" y="9" width="1" height="1" fill="#4b3c93"/><rect x="3" y="9" width="9" height="1" fill="#b9a8f5"/><rect x="12" y="9" width="1" height="1" fill="#4b3c93"/><rect x="2" y="10" width="1" height="1" fill="#4b3c93"/><rect x="3" y="10" width="9" height="1" fill="#b9a8f5"/><rect x="12" y="10" width="1" height="1" fill="#4b3c93"/><g class="benA"><rect x="3" y="11" width="1" height="1" fill="#4b3c93"/><rect x="4" y="11" width="1" height="1" fill="#b9a8f5"/><rect x="9" y="11" width="1" height="1" fill="#4b3c93"/><rect x="10" y="11" width="1" height="1" fill="#b9a8f5"/><rect x="3" y="12" width="2" height="1" fill="#4b3c93"/><rect x="9" y="12" width="2" height="1" fill="#4b3c93"/></g><g class="benB"><rect x="5" y="11" width="1" height="1" fill="#4b3c93"/><rect x="6" y="11" width="1" height="1" fill="#b9a8f5"/><rect x="11" y="11" width="1" height="1" fill="#4b3c93"/><rect x="12" y="11" width="1" height="1" fill="#b9a8f5"/><rect x="5" y="12" width="2" height="1" fill="#4b3c93"/><rect x="11" y="12" width="2" height="1" fill="#4b3c93"/></g></svg></div></div></div>{klara}
   <footer>Hämtas från SchoolSoft varje morgon. Uppgifter från Teams läggs in för hand. Senast uppdaterad {uppdaterad}. Dubbelkolla alltid med läraren.</footer>
 </main>
 </body>
