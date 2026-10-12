@@ -154,6 +154,7 @@ def nedrakning(dagar):
 
 
 def bygg_sida(uppgifter, idag):
+    e = html.escape
     kommande = sorted(
         (u for u in uppgifter if u["datum"] >= idag),
         key=lambda u: (u["datum"], u["tid"]),
@@ -165,117 +166,242 @@ def bygg_sida(uppgifter, idag):
         ar, vecka, _ = u["datum"].isocalendar()
         veckor.setdefault((ar, vecka), []).append(u)
 
-    e = html.escape
+    denna_vecka = idag.isocalendar()[:2]
     block = []
     for (ar, vecka), lista in veckor.items():
         mandag = date.fromisocalendar(ar, vecka, 1)
-        sondag = mandag + timedelta(days=6)
+        fredag = mandag + timedelta(days=4)
         bedomningar = sum(1 for u in lista if u["klass"] in ("prov", "skriv"))
-        varning = (f'<span class="varning">{bedomningar} prov/skrivuppgifter denna vecka</span>'
-                   if bedomningar >= 3 else "")
-        denna = ' denna' if (ar, vecka) == idag.isocalendar()[:2] else ""
 
-        kort = []
+        if (ar, vecka) == denna_vecka:
+            nar = "Den här veckan"
+        elif (mandag - idag).days <= 7:
+            nar = "Nästa vecka"
+        else:
+            nar = f"{mandag.day} {MANADER[mandag.month - 1]} till {fredag.day} {MANADER[fredag.month - 1]}"
+
+        tung = ""
+        if bedomningar >= 3:
+            tung = f'<p class="tung">Tung vecka: {bedomningar} prov och skrivuppgifter</p>'
+        elif bedomningar == 2:
+            tung = '<p class="tung lagom">Två prov eller skrivuppgifter</p>'
+
+        rader = []
         for u in lista:
             dagar = (u["datum"] - idag).days
-            datumtext = f'{VECKODAGAR[u["datum"].weekday()]} {u["datum"].day} {MANADER[u["datum"].month - 1]}'
-            tid = f' · {e(u["tid"])}' if u["tid"] else ""
-            info = f'<p class="info">{e(u["info"])}</p>' if u["info"] else ""
+            snart = " snart" if dagar <= 3 else ""
             kurs = f'<span class="kurs">{e(u["kurs"])}</span>' if u["kurs"] else ""
-            narmast = " snart" if dagar <= 3 else ""
-            kort.append(f"""
-        <li class="kort {u['klass']}{narmast}">
-          <div class="datum"><strong>{datumtext}</strong>{tid}<span class="kvar">{nedrakning(dagar)}</span></div>
-          <div class="innehall">
-            <div class="rad1"><span class="typ">{e(u['typ'])}</span>{kurs}</div>
+            tid = f'<span class="tid">kl. {e(u["tid"])}</span>' if u["tid"] else ""
+            info = f'<p class="info">{e(u["info"])}</p>' if u["info"] else ""
+            rader.append(f"""
+        <li class="rad {u['klass']}{snart}">
+          <div class="dag">
+            <span class="vd">{VECKODAGAR[u['datum'].weekday()]}</span>
+            <span class="nr">{u['datum'].day}</span>
+          </div>
+          <div class="text">
+            <p class="meta"><mark class="typ">{e(u['typ'])}</mark>{kurs}{tid}</p>
             <h3>{e(u['titel'])}</h3>
             {info}
           </div>
+          <span class="kvar">{nedrakning(dagar)}</span>
         </li>""")
 
         block.append(f"""
-    <section class="vecka{denna}">
-      <h2>Vecka {vecka} <span class="span">{mandag.day} {MANADER[mandag.month-1]} – {sondag.day} {MANADER[sondag.month-1]}</span>{varning}</h2>
-      <ul>{''.join(kort)}
-      </ul>
+    <section class="vecka{' nu' if (ar, vecka) == denna_vecka else ''}" aria-label="Vecka {vecka}">
+      <div class="vnr"><span class="v">v</span>{vecka}</div>
+      <div class="vinnehall">
+        <p class="nar">{nar}</p>{tung}
+        <ul>{''.join(rader)}
+        </ul>
+      </div>
     </section>""")
 
     if not block:
-        block.append('<p class="tomt">Inga kommande prov eller uppgifter just nu.</p>')
+        block.append('<p class="tomt">Inga prov eller uppgifter inlagda framöver. Skönt!</p>')
 
-    nasta = kommande[0] if kommande else None
-    toppkort = ""
-    if nasta:
-        dagar = (nasta["datum"] - idag).days
-        toppkort = f"""
-    <div class="nasta">
-      <span class="etikett">Närmast</span>
-      <strong>{e(nasta['titel'])}</strong>
-      <span>{e(nasta['kurs'] or nasta['typ'])} · {nedrakning(dagar)}</span>
-    </div>"""
+    hero = ""
+    if kommande:
+        n = kommande[0]
+        dagar = (n["datum"] - idag).days
+        if dagar == 0:
+            stor, liten = "Idag", ""
+        elif dagar == 1:
+            stor, liten = "Imorgon", ""
+        else:
+            stor, liten = str(dagar), "dagar kvar"
+        kurs = e(n["kurs"]) + ": " if n["kurs"] else ""
+        hero = f"""
+  <section class="hero {n['klass']}">
+    <p class="hlabel">Nästa {e(n['typ'].lower())}</p>
+    <div class="hrad">
+      <span class="hstor">{stor}</span><span class="hliten">{liten}</span>
+    </div>
+    <p class="htitel">{kurs}{e(n['titel'])}</p>
+  </section>"""
 
-    uppdaterad = datetime.now(TZ).strftime("%Y-%m-%d %H:%M")
+    antal = sum(1 for u in kommande if u["klass"] in ("prov", "skriv"))
+
+    # Avklarade: allt som har passerat under det här läsåret, nyast först
+    lasarsstart = date(idag.year if idag.month >= 8 else idag.year - 1, 8, 1)
+    avklarade = sorted(
+        (u for u in uppgifter if lasarsstart <= u["datum"] < idag),
+        key=lambda u: (u["datum"], u["tid"]),
+        reverse=True,
+    )
+    klara = ""
+    if avklarade:
+        klara_rader = []
+        for u in avklarade:
+            datumtext = f'{VECKODAGAR[u["datum"].weekday()]} {u["datum"].day} {MANADER[u["datum"].month - 1]}'
+            kurs = f'<span class="kurs">{e(u["kurs"])}</span>' if u["kurs"] else ""
+            klara_rader.append(f"""
+        <li class="klar {u['klass']}">
+          <span class="kdatum">{datumtext}</span>
+          <p class="meta"><mark class="typ">{e(u['typ'])}</mark>{kurs}</p>
+          <s class="ktitel">{e(u['titel'])}</s>
+        </li>""")
+        klara = f"""
+  <details class="klara">
+    <summary>Avklarade <span class="antal">{len(avklarade)}</span></summary>
+    <ul>{''.join(klara_rader)}
+    </ul>
+  </details>"""
+    uppdaterad = datetime.now(TZ).strftime("%-d/%-m kl. %H:%M")
 
     return f"""<!doctype html>
 <html lang="sv">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1c2f8f">
 <title>Provschema {KLASS}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {{
-    --bg: #f6f5f1; --yta: #ffffff; --text: #1d1d1b; --dim: #6b6a65; --linje: #e4e2dc;
-    --prov: #d1495b; --skriv: #edae49; --laxa: #00798c; --inl: #6a4c93; --sem: #30638e; --ovr: #8a8a8a;
+    --papper: #f5f7fc;
+    --rutor: #dfe5f3;
+    --black: #1c2f8f;
+    --text: #18203f;
+    --dim: #5b6488;
+    --rad: #ffffff;
+    --prov: #ffe14a;
+    --skriv: #ff9fcf;
+    --inl: #8ee6c6;
+    --laxa: #a7c6ff;
+    --sem: #ffbe73;
+    --ovr: #d9dce6;
+    --varning: #e0294a;
   }}
   @media (prefers-color-scheme: dark) {{
-    :root {{ --bg: #141413; --yta: #1f1f1d; --text: #f0efe9; --dim: #a09e97; --linje: #2e2e2b; }}
+    :root {{
+      --papper: #0f1533; --rutor: #1a2350; --black: #9fb2ff; --text: #eef1ff;
+      --dim: #9aa3c9; --rad: #161e45; --ovr: #c9cde0; --varning: #ff5c79;
+    }}
   }}
   * {{ box-sizing: border-box; }}
-  body {{ margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }}
-  main {{ max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }}
-  header h1 {{ font-size: 1.9rem; margin: 0 0 4px; letter-spacing: -0.02em; }}
+  html {{ -webkit-text-size-adjust: 100%; }}
+  body {{
+    margin: 0; color: var(--text); background-color: var(--papper);
+    background-image:
+      linear-gradient(var(--rutor) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rutor) 1px, transparent 1px);
+    background-size: 24px 24px;
+    font: 17px/1.5 "Atkinson Hyperlegible", system-ui, sans-serif;
+  }}
+  main {{ max-width: 760px; margin: 0 auto; padding: 28px 16px 64px; }}
+
+  header {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }}
+  h1 {{ font: 800 1.35rem/1 "Bricolage Grotesque", sans-serif; margin: 0; color: var(--black); }}
   header p {{ margin: 0; color: var(--dim); font-size: .9rem; }}
-  .nasta {{ margin: 20px 0 8px; padding: 16px 18px; border-radius: 14px; background: var(--text); color: var(--bg);
-    display: flex; flex-direction: column; gap: 2px; }}
-  .nasta .etikett {{ font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }}
-  .nasta strong {{ font-size: 1.15rem; }}
-  .vecka h2 {{ font-size: 1rem; margin: 28px 0 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }}
-  .vecka .span {{ color: var(--dim); font-weight: 400; font-size: .9rem; }}
-  .vecka.denna h2::after {{ content: "denna vecka"; font-size: .75rem; font-weight: 600; color: var(--prov); }}
-  .varning {{ font-size: .8rem; font-weight: 600; color: #fff; background: var(--prov); padding: 2px 8px; border-radius: 99px; }}
-  ul {{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }}
-  .kort {{ display: grid; grid-template-columns: 110px 1fr; gap: 14px; background: var(--yta);
-    border: 1px solid var(--linje); border-left: 5px solid var(--ovr); border-radius: 12px; padding: 12px 14px; }}
-  .kort.prov {{ border-left-color: var(--prov); }} .kort.skriv {{ border-left-color: var(--skriv); }}
-  .kort.laxa {{ border-left-color: var(--laxa); }} .kort.inl {{ border-left-color: var(--inl); }}
-  .kort.sem {{ border-left-color: var(--sem); }}
-  .datum {{ display: flex; flex-direction: column; font-size: .9rem; color: var(--dim); }}
-  .datum strong {{ color: var(--text); font-size: 1rem; }}
-  .kvar {{ margin-top: 4px; font-size: .8rem; }}
-  .kort.snart .kvar {{ color: var(--prov); font-weight: 700; }}
-  .rad1 {{ display: flex; gap: 8px; flex-wrap: wrap; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); }}
-  .kurs {{ font-weight: 600; color: var(--text); }}
-  h3 {{ margin: 2px 0 0; font-size: 1.02rem; }}
-  .info {{ margin: 4px 0 0; color: var(--dim); font-size: .9rem; }}
-  .tomt {{ color: var(--dim); margin-top: 32px; }}
-  footer {{ margin-top: 40px; color: var(--dim); font-size: .8rem; }}
-  @media (max-width: 480px) {{ .kort {{ grid-template-columns: 1fr; gap: 6px; }} .datum {{ flex-direction: row; gap: 8px; align-items: baseline; }} .kvar {{ margin: 0 0 0 auto; }} }}
+
+  .hero {{ margin: 22px 0 36px; padding: 22px 22px 24px; background: var(--black); color: #fff; border-radius: 20px;
+    position: relative; overflow: hidden; }}
+  @media (prefers-color-scheme: dark) {{ .hero {{ background: #22307a; }} }}
+  .hlabel {{ margin: 0; font-size: .95rem; opacity: .8; }}
+  .hrad {{ display: flex; align-items: baseline; gap: 10px; }}
+  .hstor {{ font: 800 clamp(4.5rem, 20vw, 7.5rem)/.95 "Bricolage Grotesque", sans-serif; letter-spacing: -.04em; }}
+  .hliten {{ font: 700 1.2rem/1 "Bricolage Grotesque", sans-serif; }}
+  .htitel {{ margin: 10px 0 0; font-size: 1.15rem; font-weight: 700; max-width: 34ch; }}
+  .hero::after {{ content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%;
+    background: var(--prov); opacity: .95; }}
+  .hero.skriv::after {{ background: var(--skriv); }} .hero.inl::after {{ background: var(--inl); }}
+  .hero.laxa::after {{ background: var(--laxa); }} .hero.sem::after {{ background: var(--sem); }}
+  .hero > * {{ position: relative; z-index: 1; }}
+
+  .vecka {{ display: grid; grid-template-columns: 92px 1fr; gap: 8px; margin-bottom: 30px; }}
+  .vnr {{ font: 800 3.4rem/.9 "Bricolage Grotesque", sans-serif; color: var(--black); letter-spacing: -.05em;
+    position: sticky; top: 12px; align-self: start; }}
+  .vnr .v {{ font-size: .45em; font-weight: 700; letter-spacing: 0; margin-right: 2px; }}
+  .nar {{ margin: 6px 0 8px; font-weight: 700; color: var(--dim); }}
+  .vecka.nu .nar {{ color: var(--black); }}
+  .tung {{ margin: -4px 0 10px; font-weight: 700; color: var(--varning); }}
+  .tung.lagom {{ color: var(--dim); font-weight: 400; }}
+
+  ul {{ list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }}
+  .rad {{ display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: start;
+    background: var(--rad); border-radius: 16px; padding: 14px 16px; box-shadow: 0 1px 0 var(--rutor), 0 0 0 1px var(--rutor); }}
+  .dag {{ text-align: center; line-height: 1; padding-top: 2px; }}
+  .vd {{ display: block; font-size: .8rem; color: var(--dim); }}
+  .nr {{ display: block; font: 800 1.8rem/1.05 "Bricolage Grotesque", sans-serif; color: var(--black); }}
+  .meta {{ margin: 0 0 2px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: .88rem; color: var(--dim); }}
+  mark.typ {{ background: var(--ovr); color: #18203f; font-weight: 700; padding: 1px 8px 2px; border-radius: 4px 10px 6px 12px;
+    transform: rotate(-1.5deg); display: inline-block; }}
+  .prov mark.typ {{ background: var(--prov); }} .skriv mark.typ {{ background: var(--skriv); }}
+  .inl mark.typ {{ background: var(--inl); }} .laxa mark.typ {{ background: var(--laxa); }}
+  .sem mark.typ {{ background: var(--sem); }}
+  .kurs {{ font-weight: 700; color: var(--text); }}
+  h3 {{ margin: 0; font-size: 1.05rem; line-height: 1.3; }}
+  .info {{ margin: 4px 0 0; color: var(--dim); font-size: .92rem; }}
+  .kvar {{ font-size: .85rem; color: var(--dim); white-space: nowrap; padding-top: 2px; }}
+  .rad.snart {{ box-shadow: 0 0 0 2px var(--varning); }}
+  .rad.snart .kvar {{ color: var(--varning); font-weight: 700; }}
+
+  .tomt {{ font-size: 1.1rem; margin-top: 40px; }}
+
+  .klara {{ margin-top: 40px; border-top: 2px solid var(--rutor); padding-top: 18px; }}
+  .klara summary {{ cursor: pointer; font: 700 1.25rem/1.2 "Bricolage Grotesque", sans-serif; color: var(--black);
+    list-style: none; display: flex; align-items: center; gap: 10px; padding: 6px 0; }}
+  .klara summary::-webkit-details-marker {{ display: none; }}
+  .klara summary::before {{ content: ""; width: 9px; height: 9px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor;
+    transform: rotate(-45deg); transition: transform .2s; margin-right: 4px; }}
+  .klara[open] summary::before {{ transform: rotate(45deg); }}
+  .klara summary:focus-visible {{ outline: 3px solid var(--black); outline-offset: 4px; border-radius: 6px; }}
+  .antal {{ font: 700 .85rem/1 "Atkinson Hyperlegible", sans-serif; background: var(--rad); color: var(--dim);
+    border-radius: 99px; padding: 4px 10px; box-shadow: 0 0 0 1px var(--rutor); }}
+  .klara ul {{ margin-top: 12px; gap: 6px; }}
+  .klar {{ display: grid; grid-template-columns: 96px auto 1fr; gap: 12px; align-items: center;
+    padding: 10px 14px; border-radius: 12px; background: var(--rad); opacity: .7; }}
+  .klar .meta {{ margin: 0; }}
+  .kdatum {{ font-size: .88rem; color: var(--dim); }}
+  .ktitel {{ color: var(--dim); text-decoration-thickness: 2px; text-decoration-color: var(--text); }}
+  @media (prefers-reduced-motion: reduce) {{ .klara summary::before {{ transition: none; }} }}
+  footer {{ margin-top: 48px; color: var(--dim); font-size: .85rem; max-width: 60ch; }}
+
+  @media (max-width: 560px) {{
+    .vecka {{ grid-template-columns: 1fr; gap: 0; }}
+    .vnr {{ position: static; font-size: 2.6rem; }}
+    .rad {{ grid-template-columns: 44px 1fr; }}
+    .kvar {{ grid-column: 2; padding-top: 0; }}
+    .klar {{ grid-template-columns: auto 1fr; }}
+    .ktitel {{ grid-column: 1 / -1; }}
+  }}
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>Provschema {KLASS}</h1>
-    <p>Prov, skrivuppgifter, inlämningar och läxor på ett ställe.</p>
-  </header>{toppkort}
-  {''.join(block)}
-  <footer>Uppdaterad {uppdaterad}. Hämtas automatiskt från SchoolSoft varje morgon, plus uppgifter från Teams som läggs in för hand. Dubbelkolla alltid med läraren.</footer>
+    <p>{antal} prov och skrivuppgifter kvar</p>
+  </header>{hero}
+  {''.join(block)}{klara}
+  <footer>Hämtas från SchoolSoft varje morgon. Uppgifter från Teams läggs in för hand. Senast uppdaterad {uppdaterad}. Dubbelkolla alltid med läraren.</footer>
 </main>
 </body>
 </html>
 """
-
 
 def main():
     url = os.environ.get("SCHOOLSOFT_URL", "").strip()
